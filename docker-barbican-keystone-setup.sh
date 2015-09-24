@@ -14,21 +14,25 @@ keystone endpoint-create \
     --service-id=$SERVICE_ID \
     --publicurl=http://localhost:9311 \
     --adminurl=http://localhost:9312 \
-    --internalurl=http://localhost:9313
+    --internalurl=http://localhost:9313 
 
 #
-# create admin user
+# create admin and service admin user
 #
 ADMIN_ROLE=$(get_id keystone role-get admin)
 tenant_id=$(get_id keystone tenant-create --name="service")
 user_id=$(get_id keystone user-create --name="barbican" --pass="barbican" --email=admin@domain.com)
 keystone user-role-add --user $user_id --role $ADMIN_ROLE --tenant $tenant_id
 
+service_admin_role=$(get_id keystone role-create --name="key-manager:service-admin")
+user_id=$(get_id keystone user-create --name="service-admin" --pass="secretservice" --email=serviceadmin@domain.com)
+keystone user-role-add --user $user_id --role $service_admin_role --tenant $tenant_id
+
 
 ################################
 # create stuff we need for RBAC
 ################################
-
+ 
 #
 # create tenants
 #
