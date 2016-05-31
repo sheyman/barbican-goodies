@@ -1,0 +1,662 @@
+<!doctype html>
+<html ng-app="App">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rally | Rally Tasks Trends</title>
+  
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.15-beta/nv.d3.min.css">
+  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.3/angular.min.js"></script>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.4.13/d3.min.js"></script>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.15-beta/nv.d3.min.js"></script>
+  
+
+  <script type="text/javascript">
+    "use strict";
+    var widgetDirective = function($compile) {
+  var Chart = {
+    _render: function(node, data, chart, do_after){
+      nv.addGraph(function() {
+        d3.select(node)
+          .datum(data).transition().duration(0)
+          .call(chart);
+        if (typeof do_after === "function") {
+          do_after(node, chart)
+        }
+        nv.utils.windowResize(chart.update);
+      })
+    },
+    /* NOTE(amaretskiy): this is actually a result of
+       d3.scale.category20().range(), excluding red color (#d62728)
+       which is reserved for errors */
+    _colors: ["#1f77b4", "#aec7e8", "#ff7f0e", "#ffbb78", "#2ca02c",
+              "#98df8a", "#ff9896", "#9467bd", "#c5b0d5", "#8c564b",
+              "#c49c94", "#e377c2", "#f7b6d2", "#7f7f7f", "#c7c7c7",
+              "#bcbd22", "#dbdb8d", "#17becf", "#9edae5"],
+    _widgets: {
+      Pie: "pie",
+      StackedArea: "stack",
+      Lines: "lines",
+      Histogram: "histogram"
+    },
+    get_chart: function(widget) {
+      if (widget in this._widgets) {
+        var name = this._widgets[widget];
+        return Chart[name]
+      }
+      return function() { console.log("Error: unexpected widget:", widget) }
+    },
+    pie: function(node, data, opts, do_after) {
+      var chart = nv.models.pieChart()
+        .x(function(d) { return d.key })
+        .y(function(d) { return d.values })
+        .showLabels(true)
+        .labelType("percent")
+        .donut(true)
+        .donutRatio(0.25)
+        .donutLabelsOutside(true)
+        .color(function(d){
+          if (d.data && d.data.color) { return d.data.color }
+        });
+
+      var data_ = [], colors = [], colors_map = {errors: "#d62728"};
+      for (var i in data) {
+        var key = data[i][0];
+        if (! (key in colors_map)) {
+          if (! colors.length) { colors = Chart._colors.slice() }
+          colors_map[key] = colors.shift()
+        }
+        data_.push({key:key, values:data[i][1], color:colors_map[key]})
+      }
+      Chart._render(node, data_, chart)
+    },
+    stack: function(node, data, opts, do_after) {
+      var chart = nv.models.stackedAreaChart()
+        .x(function(d) { return d[0] })
+        .y(function(d) { return d[1] })
+        .useInteractiveGuideline(opts.guide)
+        .showControls(opts.controls)
+        .clipEdge(true);
+      chart.xAxis
+        .tickFormat(d3.format(opts.xformat || "d"))
+        .axisLabel(opts.xname || "")
+        .showMaxMin(false);
+      chart.yAxis
+        .orient("left")
+        .tickFormat(d3.format(opts.yformat || ",.3f"));
+      var data_ = [];
+      for (var i in data) {
+        var d = {key:data[i][0], values:data[i][1]};
+        if (d.key === "failed_duration") {
+          d.color = "#d62728"
+        }
+        data_.push(d);
+      }
+      Chart._render(node, data_, chart, do_after);
+    },
+    lines: function(node, data, opts, do_after) {
+      var chart = nv.models.lineChart()
+        .x(function(d) { return d[0] })
+        .y(function(d) { return d[1] })
+        .useInteractiveGuideline(opts.guide)
+        .clipEdge(true);
+      chart.xAxis
+        .tickFormat(d3.format(opts.xformat || "d"))
+        .axisLabel(opts.xname || "")
+        .showMaxMin(false);
+      chart.yAxis
+        .orient("left")
+        .tickFormat(d3.format(opts.yformat || ",.3f"));
+      var data_ = [];
+      for (var i in data) {
+        var d = {key:data[i][0], values:data[i][1]};
+        if (d.key === "failed_duration") {
+          d.color = "#d62728"
+        }
+        data_.push(d)
+      }
+      Chart._render(node, data_, chart, do_after)
+    },
+    histogram: function(node, data, opts) {
+      var chart = nv.models.multiBarChart()
+        .reduceXTicks(true)
+        .showControls(false)
+        .transitionDuration(0)
+        .groupSpacing(0.05);
+      chart
+        .legend.radioButtonMode(true);
+      chart.xAxis
+        .axisLabel("Duration (seconds)")
+        .tickFormat(d3.format(",.2f"));
+      chart.yAxis
+        .axisLabel("Iterations (frequency)")
+        .tickFormat(d3.format("d"));
+      Chart._render(node, data, chart)
+    }
+  };
+
+  return {
+    restrict: "A",
+    scope: { data: "=" },
+    link: function(scope, element, attrs) {
+      scope.$watch("data", function(data) {
+        if (! data) { return console.log("Chart has no data to render!") }
+        if (attrs.widget === "Table") {
+          var ng_class = attrs.lastrowClass ? " ng-class='{"+attrs.lastrowClass+":$last}'" : "";
+          var template = "<table class='striped'><thead>" +
+            "<tr><th ng-repeat='i in data.cols track by $index'><tr>" +
+            "</thead><tbody>" +
+            "<tr" + ng_class + " ng-repeat='row in data.rows track by $index'>" +
+            "<td ng-repeat='i in row track by $index'>" +
+            "<tr>" +
+            "</tbody></table>";
+          var el = element.empty().append($compile(template)(scope)).children()[0]
+        } else {
+
+          var el_chart = element.addClass("chart").css({display:"block"});
+          var el = el_chart.html("<svg></svg>").children()[0];
+
+          var do_after = null;
+
+          if (attrs.widget in {StackedArea:0, Lines:0}) {
+
+            /* Hide widget if not enough data */
+            if ((! data.length) || (data[0].length < 1) || (data[0][1].length < 2)) {
+              return element.empty().css({display:"none"})
+            }
+
+            /* NOTE(amaretskiy): Dirty fix for changing chart width in case
+               if there are too long Y values that overlaps chart box. */
+            var do_after = function(node, chart){
+              var g_box = angular.element(el_chart[0].querySelector(".nv-y.nv-axis"));
+
+              if (g_box && g_box[0] && g_box[0].getBBox) {
+
+                try {
+                  // 30 is padding aroung graphs
+                  var width = g_box[0].getBBox().width + 30;
+                } catch (err) {
+                  // This happens sometimes, just skip silently
+                  return
+                }
+
+                // 890 is chart width (set by CSS)
+                if (typeof width === "number" && width > 890) {
+                  width = (890 * 2) - width;
+                  if (width > 0) {
+                    angular.element(node).css({width:width+"px"});
+                    chart.update()
+                  }
+                }
+              }
+            }
+          }
+          else if (attrs.widget === "Pie") {
+            if (! data.length) {
+              return element.empty().css({display:"none"})
+            }
+          }
+
+          var options = {
+            xname: attrs.nameX || "",
+            xformat: attrs.formatX || "d",
+            yformat: attrs.formatY || ",.3f",
+            controls: attrs.controls === "true",
+            guide: attrs.guide === "true"
+          };
+          Chart.get_chart(attrs.widget)(el, data, options, do_after);
+        }
+
+        if (attrs.nameY) {
+          /* NOTE(amaretskiy): Dirty fix for displaying Y-axis label correctly.
+             I believe sometimes NVD3 will allow doing this in normal way */
+          var label_y = angular.element("<div>").addClass("chart-label-y").text(attrs.nameY);
+          angular.element(el).parent().prepend(label_y)
+        }
+
+        if (attrs.description) {
+          var desc_el = angular.element("<div>").addClass(attrs.descriptionClass || "h3").text(attrs.description);
+          angular.element(el).parent().prepend(desc_el)
+        }
+
+        if (attrs.title) {
+          var title_el = angular.element("<div>").addClass(attrs.titleClass || "h2").text(attrs.title);
+          angular.element(el).parent().prepend(title_el)
+        }
+
+        angular.element(el).parent().append(angular.element("<div style='clear:both'>"))
+      });
+    }
+  }
+};
+    var controllerFunction = function($scope, $location) {
+      $scope.data = [{"stat": {"max": 0.878, "avg": 0.5846, "min": 0.491}, "seq": 5, "met": "create_and_delete_secrets", "single": false, "atomic": [{"values": [["min", [[1, 0.764], [2, 0.401], [3, 0.415], [4, 0.425], [5, 0.426]]], ["max", [[1, 0.764], [2, 0.401], [3, 0.415], [4, 0.425], [5, 0.426]]], ["median", [[1, 0.764], [2, 0.401], [3, 0.415], [4, 0.425], [5, 0.426]]], ["95%ile", [[1, 0.764], [2, 0.401], [3, 0.415], [4, 0.425], [5, 0.426]]], ["90%ile", [[1, 0.764], [2, 0.401], [3, 0.415], [4, 0.425], [5, 0.426]]], ["avg", [[1, 0.764], [2, 0.401], [3, 0.415], [4, 0.425], [5, 0.426]]]], "name": "barbican.create_secret"}, {"values": [["min", [[1, 0.114], [2, 0.09], [3, 0.097], [4, 0.094], [5, 0.097]]], ["max", [[1, 0.114], [2, 0.09], [3, 0.097], [4, 0.094], [5, 0.097]]], ["median", [[1, 0.114], [2, 0.09], [3, 0.097], [4, 0.094], [5, 0.097]]], ["95%ile", [[1, 0.114], [2, 0.09], [3, 0.097], [4, 0.094], [5, 0.097]]], ["90%ile", [[1, 0.114], [2, 0.09], [3, 0.097], [4, 0.094], [5, 0.097]]], ["avg", [[1, 0.114], [2, 0.09], [3, 0.097], [4, 0.094], [5, 0.097]]]], "name": "barbican.delete_secret"}], "total": [["min", [[1, 0.878], [2, 0.491], [3, 0.512], [4, 0.519], [5, 0.523]]], ["max", [[1, 0.878], [2, 0.491], [3, 0.512], [4, 0.519], [5, 0.523]]], ["median", [[1, 0.878], [2, 0.491], [3, 0.512], [4, 0.519], [5, 0.523]]], ["95%ile", [[1, 0.878], [2, 0.491], [3, 0.512], [4, 0.519], [5, 0.523]]], ["90%ile", [[1, 0.878], [2, 0.491], [3, 0.512], [4, 0.519], [5, 0.523]]], ["avg", [[1, 0.878], [2, 0.491], [3, 0.512], [4, 0.519], [5, 0.523]]]], "name": "BarbicanSecrets.create_and_delete_secrets", "sla_failures": 0, "config": "{\n  \"runner\": {\n    \"type\": \"constant\", \n    \"concurrency\": 1, \n    \"times\": 1\n  }\n}", "cls": "BarbicanSecrets"}, {"stat": {"max": 0.809, "avg": 0.476, "min": 0.384}, "seq": 7, "met": "list_secrets", "single": false, "atomic": [{"values": [["min", [[1, 0.417], [2, 0.403], [3, 0.432], [4, 0.384], [5, 0.416], [6, 0.405], [7, 0.391]]], ["max", [[1, 0.672], [2, 0.809], [3, 0.692], [4, 0.608], [5, 0.705], [6, 0.597], [7, 0.575]]], ["median", [[1, 0.438], [2, 0.433], [3, 0.492], [4, 0.438], [5, 0.454], [6, 0.432], [7, 0.449]]], ["95%ile", [[1, 0.6], [2, 0.748], [3, 0.673], [4, 0.55], [5, 0.628], [6, 0.53], [7, 0.574]]], ["90%ile", [[1, 0.529], [2, 0.688], [3, 0.653], [4, 0.491], [5, 0.551], [6, 0.463], [7, 0.573]]], ["avg", [[1, 0.465], [2, 0.503], [3, 0.52], [4, 0.447], [5, 0.484], [6, 0.444], [7, 0.469]]]], "name": "barbican.list_secrets"}], "total": [["min", [[1, 0.417], [2, 0.403], [3, 0.432], [4, 0.384], [5, 0.416], [6, 0.405], [7, 0.391]]], ["max", [[1, 0.672], [2, 0.809], [3, 0.692], [4, 0.608], [5, 0.705], [6, 0.597], [7, 0.575]]], ["median", [[1, 0.438], [2, 0.433], [3, 0.492], [4, 0.438], [5, 0.454], [6, 0.432], [7, 0.449]]], ["95%ile", [[1, 0.601], [2, 0.749], [3, 0.673], [4, 0.55], [5, 0.628], [6, 0.53], [7, 0.574]]], ["90%ile", [[1, 0.529], [2, 0.688], [3, 0.653], [4, 0.491], [5, 0.551], [6, 0.463], [7, 0.574]]], ["avg", [[1, 0.465], [2, 0.503], [3, 0.52], [4, 0.447], [5, 0.484], [6, 0.444], [7, 0.469]]]], "name": "BarbicanSecrets.list_secrets", "sla_failures": 0, "config": "{\n  \"runner\": {\n    \"type\": \"constant\", \n    \"concurrency\": 2, \n    \"times\": 10\n  }\n}", "cls": "BarbicanSecrets"}];
+
+      $scope.location = {
+        /* #/path/hash/sub/div */
+        normalize: function(str) {
+          /* Remove unwanted characters from string */
+          if (typeof str !== "string") { return "" }
+          return str.replace(/[^\w\-\.]/g, "")
+        },
+        uri: function(obj) {
+          /* Getter/Setter */
+          if (! obj) {
+            var uri = {path: "", hash: "", sub: "", div: ""};
+            var arr = ["div", "sub", "hash", "path"];
+            angular.forEach($location.url().split("/"), function(value){
+              var v = $scope.location.normalize(value);
+              if (v) { var k = arr.pop(); if (k) { this[k] = v }}
+            }, uri);
+            return uri
+          }
+          var arr = [obj.path, obj.hash, obj.sub, obj.div], res = [];
+          for (var i in arr) { if (! arr[i]) { break }; res.push(arr[i]) }
+          return $location.url("/" + res.join("/"))
+        },
+        path: function(path, hash) {
+          /* Getter/Setter */
+          if (path === "") { return this.uri({}) }
+          path = this.normalize(path);
+          var uri = this.uri();
+          if (! path) { return uri.path }
+          uri.path = path;
+          var _hash = this.normalize(hash);
+          if (_hash || hash === "") { uri.hash = _hash }
+          return this.uri(uri)
+        },
+        hash: function(hash) {
+          /* Getter/Setter */
+          if (hash) { this.uri({path:this.uri().path, hash:hash}) }
+          return this.uri().hash
+        }
+      }
+
+      /* Dispatch */
+
+      $scope.route = function(uri) {
+        if (! $scope.wload_map) { return }
+        if (uri.path in $scope.wload_map) {
+          $scope.view = {is_wload:true};
+          $scope.wload = $scope.wload_map[uri.path];
+          $scope.nav_idx = $scope.nav_map[uri.path];
+          $scope.showTab(uri);
+        } else {
+            $scope.wload = null;
+            $scope.view = {is_main:true}
+        }
+      }
+
+      $scope.$on("$locationChangeSuccess", function (event, newUrl, oldUrl) {
+        $scope.route($scope.location.uri())
+      });
+
+      $scope.showNav = function(nav_idx) { $scope.nav_idx = nav_idx }
+
+      /* Tabs */
+
+      $scope.tabs = [
+        {
+          id: "total",
+          name: "Total",
+          visible: function(){ return true }
+        }, {
+          id: "atomic",
+          name: "Atomic actions",
+          visible: function(){ return (! $scope.wload.single) && $scope.wload.atomic.length }
+        }, {
+          id: "config",
+          name: "Configuration",
+          visible: function(){ return !! $scope.wload.config.length }
+        }
+      ];
+      $scope.tabs_map = {};
+      angular.forEach($scope.tabs,
+                      function(tab){ this[tab.id] = tab }, $scope.tabs_map);
+
+      $scope.showTab = function(uri) {
+        $scope.tab = uri.hash in $scope.tabs_map ? uri.hash : "total"
+      }
+
+      for (var i in $scope.tabs) {
+        $scope.tabs[i].isVisible = function() {
+          if ($scope.wload) {
+            if (this.visible()) { return true }
+
+            /* If tab should be hidden but is selected - show another one */
+            if (this.id === $scope.location.hash()) {
+              for (var i in $scope.tabs) {
+                var tab = $scope.tabs[i];
+                if (tab.id != this.id && tab.visible()) {
+                  $scope.tab = tab.id;
+                  return false
+                }
+              }
+            }
+          }
+          return false
+        }
+      }
+
+      $scope.showError = function(message) {
+        return (function (e) {
+          e.style.display = "block";
+          e.textContent = message
+        })(document.getElementById("page-error"))
+      }
+
+      /* Initialization */
+
+      angular.element(document).ready(function(){
+        if (! $scope.data.length) {
+          return $scope.showError("No data...")
+        }
+
+        /* Compose data mapping */
+
+        $scope.nav = [];
+        $scope.nav_map = {};
+        $scope.wload_map = {};
+        var prev_cls, prev_met, met = [], itr = 0, cls_idx = 0;
+
+        for (var idx in $scope.data) {
+          var w = $scope.data[idx];
+          if (! prev_cls) {
+            prev_cls = w.cls
+          }
+          else if (prev_cls !== w.cls) {
+            $scope.nav.push({name:prev_cls, met:met, idx:cls_idx});
+            prev_cls = w.cls;
+            met = [];
+            itr = 1;
+            cls_idx += 1
+          }
+
+          if (prev_met !== w.met) { itr = 1 };
+          w.ref = $scope.location.normalize(w.cls+"."+w.met+(itr > 1 ? "-"+itr : ""));
+          w.order_idx = itr > 1 ? " ["+itr+"]" : ""
+          $scope.wload_map[w.ref] = w;
+          $scope.nav_map[w.ref] = cls_idx;
+          met.push({name:w.met, itr:itr, idx:idx, order_idx:w.order_idx,
+                    ref:w.ref, single:w.single});
+          prev_met = w.met;
+          itr += 1;
+        }
+
+        if (met.length) {
+          $scope.nav.push({name:prev_cls, met:met, idx:cls_idx})
+        }
+
+        /* Start */
+
+        $scope.route($scope.location.uri());
+        $scope.$digest()
+      });
+    };
+
+    if (typeof angular === "object") {
+      angular.module("App", [])
+        .controller("Controller", ["$scope", "$location", controllerFunction])
+        .directive("widget", widgetDirective)
+    }
+
+</script>
+  <style>
+    body { margin:0; padding:0 0 50px; font-size:14px; font-family:Helvetica,Arial,sans-serif }
+    a, a:active, a:focus, a:visited { text-decoration:none; outline:none }
+    p { margin:0; padding:5px 0 }
+    p.thesis { padding:10px 0 }
+    h1 { color:#666; margin:0 0 20px; font-size:30px; font-weight:normal }
+    h2, .h2 { color:#666; margin:24px 0 6px; font-size:25px; font-weight:normal }
+    h3, .h3 { color:#777; margin:12px 0 4px; font-size:18px; font-weight:normal }
+    table { border-collapse:collapse; border-spacing:0; width:100%; font-size:12px; margin:0 0 10px }
+    table th { text-align:left; padding:8px; color:#000; border:2px solid #ddd; border-width:0 0 2px 0 }
+    table th.sortable { cursor:pointer }
+    table td { text-align:left; border-top:1px solid #ddd; padding:8px; color:#333 }
+    table.compact td { padding:4px 8px }
+    table.striped tr:nth-child(odd) td { background:#f9f9f9 }
+    table.linked tbody tr:hover { background:#f9f9f9; cursor:pointer }
+    .rich, .rich td { font-weight:bold }
+    .code { padding:10px; font-size:13px; color:#333; background:#f6f6f6; border:1px solid #e5e5e5; border-radius:4px }
+
+    .header { text-align:left; background:#333; font-size:18px; padding:13px 0; margin-bottom:20px; color:#fff; background-image:linear-gradient(to bottom, #444 0px, #222 100%) }
+    .header a, .header a:visited, .header a:focus { color:#999 }
+
+    .notify-error { padding:5px 10px; background:#fee; color:red }
+    .status-skip, .status-skip td { color:grey }
+    .status-pass, .status-pass td { color:green }
+    .status-fail, .status-fail td { color:red }
+    .capitalize { text-transform:capitalize }
+    
+    .aside { margin:0 20px 0 0; display:block; width:255px; float:left }
+    .aside > div { margin-bottom: 15px }
+    .aside > div div:first-child { border-top-left-radius:4px; border-top-right-radius:4px }
+    .aside > div div:last-child { border-bottom-left-radius:4px; border-bottom-right-radius:4px }
+    .navcls { color:#678; background:#eee; border:1px solid #ddd; margin-bottom:-1px; display:block; padding:8px 9px; font-weight:bold; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer }
+    .navcls.expanded { color:#469 }
+    .navcls.active { background:#428bca; background-image:linear-gradient(to bottom, #428bca 0px, #3278b3 100%); border-color:#3278b3; color:#fff }
+    .navmet { color:#555; background:#fff; border:1px solid #ddd; font-size:12px; display:block; margin-bottom:-1px; padding:8px 10px; text-align:left; text-overflow:ellipsis; white-space:nowrap; overflow:hidden; cursor:pointer }
+    .navmet:hover { background:#f8f8f8 }
+    .navmet.active, .navmet.active:hover { background:#428bca; background-image:linear-gradient(to bottom, #428bca 0px, #3278b3 100%); border-color:#3278b3; color:#fff }
+    .navmet.single, .single, .single td { color:#999 }
+    .navmet.active.single { color:#ccc }
+
+    .tabs { list-style:outside none none; margin:0 0 5px; padding:0; border-bottom:1px solid #ddd }
+    .tabs:after { clear:both }
+    .tabs li { float:left; margin-bottom:-1px; display:block; position:relative }
+    .tabs li div { border:1px solid transparent; border-radius:4px 4px 0 0; line-height:20px; margin-right:2px; padding:10px 15px; color:#428bca }
+    .tabs li div:hover { border-color:#eee #eee #ddd; background:#eee; cursor:pointer; }
+    .tabs li.active div { background:#fff; border-color:#ddd #ddd transparent; border-style:solid; border-width:1px; color:#555; cursor:default }
+    .failure-mesg { color:#900 }
+    .failure-trace { color:#333; white-space:pre; overflow:auto }
+
+    .link { color:#428BCA; padding:5px 15px 5px 5px; text-decoration:underline; cursor:pointer }
+    .link.active { color:#333; text-decoration:none }
+
+    .chart { padding:0; margin:0; width:890px }
+    .chart svg { height:300px; padding:0; margin:0; overflow:visible; float:right }
+    .chart.lower svg { height:180px }
+    .chart-label-y { font-size:12px; position:relative; top:5px; padding:0; margin:0 }
+
+    .clearfix { clear:both }
+    .sortable > .arrow { display:inline-block; width:12px; height:inherit; color:#c90 }
+    .content-main { margin:0 5px; display:block; float:left }
+    .content-wrap { width:900px }
+
+    .chart-title { color:#f60; font-size:20px; padding:8px 0 3px }
+
+    .content-wrap {  margin:0 auto; padding:0 5px </%block>}
+    
+    @media only screen and (min-width: 320px)  { .content-wrap { width:900px  } .content-main { width:600px } }
+    @media only screen and (min-width: 900px)  { .content-wrap { width:880px  } .content-main { width:590px } }
+    @media only screen and (min-width: 1000px) { .content-wrap { width:980px  } .content-main { width:690px } }
+    @media only screen and (min-width: 1100px) { .content-wrap { width:1080px } .content-main { width:790px } }
+    @media only screen and (min-width: 1200px) { .content-wrap { width:1180px } .content-main { width:890px } }
+
+  </style>
+</head>
+<body ng-controller="Controller">
+
+  <div class="header">
+    <div class="content-wrap">
+      <a href="https://github.com/openstack/rally">Rally</a>&nbsp;
+      <span>tasks trends report</span>
+    </div>
+  </div>
+
+  <div class="content-wrap">
+    
+
+    <p id="page-error" class="notify-error" style="display:none"></p>
+
+    <div id="content-nav" class="aside" ng-cloack>
+      <div>
+        <div class="navcls"
+             ng-class="{active:view.is_main}"
+             ng-click="location.path('')">Trends overview</div>
+      </div>
+      <div>
+        <div class="navcls"
+             title="{{n.name}}"
+             ng-repeat-start="n in nav track by $index"
+             ng-click="showNav(n.idx)"
+             ng-class="{expanded:n.idx==nav_idx}">
+                <span ng-hide="n.idx==nav_idx">&#9658;</span>
+                <span ng-show="n.idx==nav_idx">&#9660;</span>
+                {{n.name}}</div>
+        <div class="navmet"
+             title="{{m.name}}{{m.order_idx}}"
+             ng-show="n.idx==nav_idx"
+             ng-class="{active:wload && m.ref==wload.ref, single:m.single}"
+             ng-click="location.path(m.ref)"
+             ng-repeat="m in n.met track by $index"
+             ng-repeat-end>{{m.name}}{{m.order_idx}}</div>
+      </div>
+    </div>
+
+    <div id="content-main" class="content-main" ng-show="data.length" ng-cloak>
+      <span id="/"></span>
+
+      <div ng-show="view.is_main">
+        <h2>Trends overview</h2>
+        <table class="linked compact"
+               ng-init="ov_srt='ref'; ov_dir=false">
+          <thead>
+            <tr>
+              <th class="sortable"
+                  title="Scenario name, with optional suffix of run number"
+                  ng-click="ov_srt='ref'; ov_dir=!ov_dir">
+                Scenario
+                <span class="arrow">
+                  <b ng-show="ov_srt=='ref' && !ov_dir">&#x25b4;</b>
+                  <b ng-show="ov_srt=='ref' && ov_dir">&#x25be;</b>
+                </span>
+              <th class="sortable"
+                  title="How many times the workload has run"
+                  ng-click="ov_srt='seq'; ov_dir=!ov_dir">
+                Number of runs
+                <span class="arrow">
+                  <b ng-show="ov_srt=='seq' && !ov_dir">&#x25b4;</b>
+                  <b ng-show="ov_srt=='seq' && ov_dir">&#x25be;</b>
+                </span>
+              <th class="sortable" title="Mimimum duration"
+                  ng-click="ov_srt='stat.min'; ov_dir=!ov_dir">
+                Min duration
+                <span class="arrow">
+                  <b ng-show="ov_srt=='stat.min' && !ov_dir">&#x25b4;</b>
+                  <b ng-show="ov_srt=='stat.min' && ov_dir">&#x25be;</b>
+                </span>
+              <th class="sortable" title="Maximum duration"
+                  ng-click="ov_srt='stat.max'; ov_dir=!ov_dir">
+                Max duration
+                <span class="arrow">
+                  <b ng-show="ov_srt=='stat.max' && !ov_dir">&#x25b4;</b>
+                  <b ng-show="ov_srt=='stat.max' && ov_dir">&#x25be;</b>
+                </span>
+              <th class="sortable" title="Average duration"
+                  ng-click="ov_srt='stat.avg'; ov_dir=!ov_dir">
+                Avg duration
+                <span class="arrow">
+                  <b ng-show="ov_srt=='stat.avg' && !ov_dir">&#x25b4;</b>
+                  <b ng-show="ov_srt=='stat.avg' && ov_dir">&#x25be;</b>
+                </span>
+              <th class="sortable" title="Whether there were SLA failures"
+                  ng-click="ov_srt='sla_failures'; ov_dir=!ov_dir">
+                SLA
+                <span class="arrow">
+                  <b ng-show="ov_srt=='sla_failures' && !ov_dir">&#x25b4;</b>
+                  <b ng-show="ov_srt=='sla_failures' && ov_dir">&#x25be;</b>
+                </span>
+            <tr>
+          </thead>
+          <tbody>
+            <tr ng-repeat="w in data | orderBy:ov_srt:ov_dir"
+                ng-click="location.path(w.ref)"
+                ng-class="{single:w.single}">
+              <td>{{w.ref}}
+              <td>{{w.seq}}
+              <td>
+                <span ng-if="w.single">-</span>
+                <span ng-if="!w.single">{{w.stat.min | number:4}}</span>
+              <td>
+                <span ng-if="w.single">-</span>
+                <span ng-if="!w.single">{{w.stat.max | number:4}}</span>
+              <td>
+                <span ng-if="w.single">-</span>
+                <span ng-if="!w.single">{{w.stat.avg | number:4}}</span>
+              <td title="{{w.sla_failures ? 'Failures: ' + w.sla_failures : 'No failures'}}">
+                <span ng-hide="w.sla_failures" class="status-pass">&#x2714;</span>
+                <span ng-show="w.sla_failures" class="status-fail">&#x2716;</span>
+            <tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div ng-show="view.is_wload">
+        <div style="color:#8be; font-size:18px;">Compare workload runs</div>
+        <h1>{{wload.cls}}.<wbr>{{wload.met}}{{wload.order_idx}}</h1>
+        <ul class="tabs">
+          <li ng-repeat="t in tabs"
+              ng-show="t.isVisible()"
+              ng-class="{active:t.id == tab}"
+              ng-click="location.hash(t.id)">
+            <div>{{t.name}}</div>
+          </li>
+          <div class="clearfix"></div>
+        </ul>
+        <div ng-include="tab"></div>
+
+        <script type="text/ng-template" id="total">
+          <div ng-if="wload.single">
+            <div style="margin:30px 0 10px; font-size:14px; color:#ff6622">
+              This wrokload has single run so trends can not be displayed.<br>
+              There should be at least two workload results with the same configuration
+            </div>
+          </div>
+          <div ng-if="!wload.single">
+            <h2>Total durations</h2>
+            <div widget="Lines"
+                 data="wload.total"
+                 name-x="Task run sequence number"
+                 controls="true"
+                 guide="true">
+            </div>
+          </div>
+        </script>
+
+        <script type="text/ng-template" id="atomic">
+          <h2>Atomic actions durations</h2>
+          <div ng-repeat="chart in wload.atomic track by $index">
+            <span id="{{chart.name}}"></span>
+            <div class="chart-title">{{chart.name}}</div>
+            <div widget="Lines"
+                 data="chart.values"
+                 name-x="Task run sequence number"
+                 controls="true"
+                 guide="true">
+            </div>
+          </div>
+        </script>
+
+        <script type="text/ng-template" id="config">
+          <h2>Workload configuration</h2>
+          <pre class="code">{{wload.config}}</pre>
+        </script>
+      </div>
+
+    </div>
+    <div class="clearfix"></div>
+
+
+  </div>
+
+  <script type="text/javascript">
+    if (! window.angular) {(function(f){
+      f(document.getElementById("content-nav"), "none");
+      f(document.getElementById("content-main"), "none");
+      f(document.getElementById("page-error"), "block").textContent = "Failed to load AngularJS framework"
+    })(function(e, s){e.style.display = s; return e})}
+</script>
+</body>
+</html>
