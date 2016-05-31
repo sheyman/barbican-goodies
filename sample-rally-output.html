@@ -1,15 +1,15 @@
-<!doctype html>
-<html ng-app="App">
-<head>
-  <meta charset="utf-8">
+<!DOCTYPE html>
+<!-- saved from url=(0040)file:///Users/step6927/rally/output.html -->
+<html ng-app="App" class="ng-scope"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><style type="text/css">@charset "UTF-8";[ng\:cloak],[ng-cloak],[data-ng-cloak],[x-ng-cloak],.ng-cloak,.x-ng-cloak,.ng-hide:not(.ng-hide-animate){display:none !important;}ng\:form{display:block;}</style>
+  
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Rally | Rally Tasks Trends</title>
   
   
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.15-beta/nv.d3.min.css">
-  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.3/angular.min.js"></script>
-  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.4.13/d3.min.js"></script>
-  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.15-beta/nv.d3.min.js"></script>
+  <link rel="stylesheet" href="./rally_files/nv.d3.min.css">
+  <script type="text/javascript" src="./rally_files/angular.min.js"></script>
+  <script type="text/javascript" src="./rally_files/d3.min.js"></script>
+  <script type="text/javascript" src="./rally_files/nv.d3.min.js"></script>
   
 
   <script type="text/javascript">
@@ -476,7 +476,7 @@
 
   </style>
 </head>
-<body ng-controller="Controller">
+<body ng-controller="Controller" class="ng-scope">
 
   <div class="header">
     <div class="content-wrap">
@@ -490,122 +490,115 @@
 
     <p id="page-error" class="notify-error" style="display:none"></p>
 
-    <div id="content-nav" class="aside" ng-cloack>
+    <div id="content-nav" class="aside" ng-cloack="">
       <div>
-        <div class="navcls"
-             ng-class="{active:view.is_main}"
-             ng-click="location.path('')">Trends overview</div>
+        <div class="navcls active" ng-class="{active:view.is_main}" ng-click="location.path(&#39;&#39;)">Trends overview</div>
       </div>
       <div>
-        <div class="navcls"
-             title="{{n.name}}"
-             ng-repeat-start="n in nav track by $index"
-             ng-click="showNav(n.idx)"
-             ng-class="{expanded:n.idx==nav_idx}">
-                <span ng-hide="n.idx==nav_idx">&#9658;</span>
-                <span ng-show="n.idx==nav_idx">&#9660;</span>
-                {{n.name}}</div>
-        <div class="navmet"
-             title="{{m.name}}{{m.order_idx}}"
-             ng-show="n.idx==nav_idx"
-             ng-class="{active:wload && m.ref==wload.ref, single:m.single}"
-             ng-click="location.path(m.ref)"
-             ng-repeat="m in n.met track by $index"
-             ng-repeat-end>{{m.name}}{{m.order_idx}}</div>
+        <!-- ngRepeat: n in nav track by $index --><div class="navcls ng-binding ng-scope" title="BarbicanSecrets" ng-repeat-start="n in nav track by $index" ng-click="showNav(n.idx)" ng-class="{expanded:n.idx==nav_idx}">
+                <span ng-hide="n.idx==nav_idx">►</span>
+                <span ng-show="n.idx==nav_idx" class="ng-hide">▼</span>
+                BarbicanSecrets</div>
+        <!-- ngRepeat: m in n.met track by $index --><div class="navmet ng-binding ng-scope ng-hide" title="create_and_delete_secrets" ng-show="n.idx==nav_idx" ng-class="{active:wload &amp;&amp; m.ref==wload.ref, single:m.single}" ng-click="location.path(m.ref)" ng-repeat="m in n.met track by $index" ng-repeat-end="">create_and_delete_secrets</div><!-- end ngRepeat: m in n.met track by $index --><div class="navmet ng-binding ng-scope ng-hide" title="list_secrets" ng-show="n.idx==nav_idx" ng-class="{active:wload &amp;&amp; m.ref==wload.ref, single:m.single}" ng-click="location.path(m.ref)" ng-repeat="m in n.met track by $index" ng-repeat-end="">list_secrets</div><!-- end ngRepeat: m in n.met track by $index --><!-- end ngRepeat: n in nav track by $index -->
       </div>
     </div>
 
-    <div id="content-main" class="content-main" ng-show="data.length" ng-cloak>
+    <div id="content-main" class="content-main" ng-show="data.length">
       <span id="/"></span>
 
-      <div ng-show="view.is_main">
+      <div ng-show="view.is_main" class="">
         <h2>Trends overview</h2>
-        <table class="linked compact"
-               ng-init="ov_srt='ref'; ov_dir=false">
+        <table class="linked compact" ng-init="ov_srt=&#39;ref&#39;; ov_dir=false">
           <thead>
             <tr>
-              <th class="sortable"
-                  title="Scenario name, with optional suffix of run number"
-                  ng-click="ov_srt='ref'; ov_dir=!ov_dir">
+              <th class="sortable" title="Scenario name, with optional suffix of run number" ng-click="ov_srt=&#39;ref&#39;; ov_dir=!ov_dir">
                 Scenario
                 <span class="arrow">
-                  <b ng-show="ov_srt=='ref' && !ov_dir">&#x25b4;</b>
-                  <b ng-show="ov_srt=='ref' && ov_dir">&#x25be;</b>
+                  <b ng-show="ov_srt==&#39;ref&#39; &amp;&amp; !ov_dir">▴</b>
+                  <b ng-show="ov_srt==&#39;ref&#39; &amp;&amp; ov_dir" class="ng-hide">▾</b>
                 </span>
-              <th class="sortable"
-                  title="How many times the workload has run"
-                  ng-click="ov_srt='seq'; ov_dir=!ov_dir">
+              </th><th class="sortable" title="How many times the workload has run" ng-click="ov_srt=&#39;seq&#39;; ov_dir=!ov_dir">
                 Number of runs
                 <span class="arrow">
-                  <b ng-show="ov_srt=='seq' && !ov_dir">&#x25b4;</b>
-                  <b ng-show="ov_srt=='seq' && ov_dir">&#x25be;</b>
+                  <b ng-show="ov_srt==&#39;seq&#39; &amp;&amp; !ov_dir" class="ng-hide">▴</b>
+                  <b ng-show="ov_srt==&#39;seq&#39; &amp;&amp; ov_dir" class="ng-hide">▾</b>
                 </span>
-              <th class="sortable" title="Mimimum duration"
-                  ng-click="ov_srt='stat.min'; ov_dir=!ov_dir">
+              </th><th class="sortable" title="Mimimum duration" ng-click="ov_srt=&#39;stat.min&#39;; ov_dir=!ov_dir">
                 Min duration
                 <span class="arrow">
-                  <b ng-show="ov_srt=='stat.min' && !ov_dir">&#x25b4;</b>
-                  <b ng-show="ov_srt=='stat.min' && ov_dir">&#x25be;</b>
+                  <b ng-show="ov_srt==&#39;stat.min&#39; &amp;&amp; !ov_dir" class="ng-hide">▴</b>
+                  <b ng-show="ov_srt==&#39;stat.min&#39; &amp;&amp; ov_dir" class="ng-hide">▾</b>
                 </span>
-              <th class="sortable" title="Maximum duration"
-                  ng-click="ov_srt='stat.max'; ov_dir=!ov_dir">
+              </th><th class="sortable" title="Maximum duration" ng-click="ov_srt=&#39;stat.max&#39;; ov_dir=!ov_dir">
                 Max duration
                 <span class="arrow">
-                  <b ng-show="ov_srt=='stat.max' && !ov_dir">&#x25b4;</b>
-                  <b ng-show="ov_srt=='stat.max' && ov_dir">&#x25be;</b>
+                  <b ng-show="ov_srt==&#39;stat.max&#39; &amp;&amp; !ov_dir" class="ng-hide">▴</b>
+                  <b ng-show="ov_srt==&#39;stat.max&#39; &amp;&amp; ov_dir" class="ng-hide">▾</b>
                 </span>
-              <th class="sortable" title="Average duration"
-                  ng-click="ov_srt='stat.avg'; ov_dir=!ov_dir">
+              </th><th class="sortable" title="Average duration" ng-click="ov_srt=&#39;stat.avg&#39;; ov_dir=!ov_dir">
                 Avg duration
                 <span class="arrow">
-                  <b ng-show="ov_srt=='stat.avg' && !ov_dir">&#x25b4;</b>
-                  <b ng-show="ov_srt=='stat.avg' && ov_dir">&#x25be;</b>
+                  <b ng-show="ov_srt==&#39;stat.avg&#39; &amp;&amp; !ov_dir" class="ng-hide">▴</b>
+                  <b ng-show="ov_srt==&#39;stat.avg&#39; &amp;&amp; ov_dir" class="ng-hide">▾</b>
                 </span>
-              <th class="sortable" title="Whether there were SLA failures"
-                  ng-click="ov_srt='sla_failures'; ov_dir=!ov_dir">
+              </th><th class="sortable" title="Whether there were SLA failures" ng-click="ov_srt=&#39;sla_failures&#39;; ov_dir=!ov_dir">
                 SLA
                 <span class="arrow">
-                  <b ng-show="ov_srt=='sla_failures' && !ov_dir">&#x25b4;</b>
-                  <b ng-show="ov_srt=='sla_failures' && ov_dir">&#x25be;</b>
+                  <b ng-show="ov_srt==&#39;sla_failures&#39; &amp;&amp; !ov_dir" class="ng-hide">▴</b>
+                  <b ng-show="ov_srt==&#39;sla_failures&#39; &amp;&amp; ov_dir" class="ng-hide">▾</b>
                 </span>
-            <tr>
-          </thead>
+            </th></tr><tr>
+          </tr></thead>
           <tbody>
-            <tr ng-repeat="w in data | orderBy:ov_srt:ov_dir"
-                ng-click="location.path(w.ref)"
-                ng-class="{single:w.single}">
-              <td>{{w.ref}}
-              <td>{{w.seq}}
-              <td>
-                <span ng-if="w.single">-</span>
-                <span ng-if="!w.single">{{w.stat.min | number:4}}</span>
-              <td>
-                <span ng-if="w.single">-</span>
-                <span ng-if="!w.single">{{w.stat.max | number:4}}</span>
-              <td>
-                <span ng-if="w.single">-</span>
-                <span ng-if="!w.single">{{w.stat.avg | number:4}}</span>
-              <td title="{{w.sla_failures ? 'Failures: ' + w.sla_failures : 'No failures'}}">
-                <span ng-hide="w.sla_failures" class="status-pass">&#x2714;</span>
-                <span ng-show="w.sla_failures" class="status-fail">&#x2716;</span>
-            <tr>
-          </tbody>
+            <!-- ngRepeat: w in data | orderBy:ov_srt:ov_dir --><tr ng-repeat="w in data | orderBy:ov_srt:ov_dir" ng-click="location.path(w.ref)" ng-class="{single:w.single}" class="ng-scope">
+              <td class="ng-binding">BarbicanSecrets.create_and_delete_secrets
+              </td><td class="ng-binding">5
+              </td><td>
+                <!-- ngIf: w.single -->
+                <!-- ngIf: !w.single --><span ng-if="!w.single" class="ng-binding ng-scope">0.4910</span><!-- end ngIf: !w.single -->
+              </td><td>
+                <!-- ngIf: w.single -->
+                <!-- ngIf: !w.single --><span ng-if="!w.single" class="ng-binding ng-scope">0.8780</span><!-- end ngIf: !w.single -->
+              </td><td>
+                <!-- ngIf: w.single -->
+                <!-- ngIf: !w.single --><span ng-if="!w.single" class="ng-binding ng-scope">0.5846</span><!-- end ngIf: !w.single -->
+              </td><td title="No failures">
+                <span ng-hide="w.sla_failures" class="status-pass">✔</span>
+                <span ng-show="w.sla_failures" class="status-fail ng-hide">✖</span>
+            </td></tr><!-- end ngRepeat: w in data | orderBy:ov_srt:ov_dir --><tr ng-repeat="w in data | orderBy:ov_srt:ov_dir" ng-click="location.path(w.ref)" ng-class="{single:w.single}" class="ng-scope">
+              <td class="ng-binding">BarbicanSecrets.list_secrets
+              </td><td class="ng-binding">7
+              </td><td>
+                <!-- ngIf: w.single -->
+                <!-- ngIf: !w.single --><span ng-if="!w.single" class="ng-binding ng-scope">0.3840</span><!-- end ngIf: !w.single -->
+              </td><td>
+                <!-- ngIf: w.single -->
+                <!-- ngIf: !w.single --><span ng-if="!w.single" class="ng-binding ng-scope">0.8090</span><!-- end ngIf: !w.single -->
+              </td><td>
+                <!-- ngIf: w.single -->
+                <!-- ngIf: !w.single --><span ng-if="!w.single" class="ng-binding ng-scope">0.4760</span><!-- end ngIf: !w.single -->
+              </td><td title="No failures">
+                <span ng-hide="w.sla_failures" class="status-pass">✔</span>
+                <span ng-show="w.sla_failures" class="status-fail ng-hide">✖</span>
+            </td></tr><!-- end ngRepeat: w in data | orderBy:ov_srt:ov_dir --><tr>
+          </tr></tbody>
         </table>
       </div>
 
-      <div ng-show="view.is_wload">
+      <div ng-show="view.is_wload" class="ng-hide">
         <div style="color:#8be; font-size:18px;">Compare workload runs</div>
-        <h1>{{wload.cls}}.<wbr>{{wload.met}}{{wload.order_idx}}</h1>
+        <h1 class="ng-binding">.<wbr></h1>
         <ul class="tabs">
-          <li ng-repeat="t in tabs"
-              ng-show="t.isVisible()"
-              ng-class="{active:t.id == tab}"
-              ng-click="location.hash(t.id)">
-            <div>{{t.name}}</div>
-          </li>
+          <!-- ngRepeat: t in tabs --><li ng-repeat="t in tabs" ng-show="t.isVisible()" ng-class="{active:t.id == tab}" ng-click="location.hash(t.id)" class="ng-scope ng-hide">
+            <div class="ng-binding">Total</div>
+          </li><!-- end ngRepeat: t in tabs --><li ng-repeat="t in tabs" ng-show="t.isVisible()" ng-class="{active:t.id == tab}" ng-click="location.hash(t.id)" class="ng-scope ng-hide">
+            <div class="ng-binding">Atomic actions</div>
+          </li><!-- end ngRepeat: t in tabs --><li ng-repeat="t in tabs" ng-show="t.isVisible()" ng-class="{active:t.id == tab}" ng-click="location.hash(t.id)" class="ng-scope ng-hide">
+            <div class="ng-binding">Configuration</div>
+          </li><!-- end ngRepeat: t in tabs -->
           <div class="clearfix"></div>
         </ul>
-        <div ng-include="tab"></div>
+        <!-- ngInclude: tab -->
 
         <script type="text/ng-template" id="total">
           <div ng-if="wload.single">
@@ -658,5 +651,5 @@
       f(document.getElementById("page-error"), "block").textContent = "Failed to load AngularJS framework"
     })(function(e, s){e.style.display = s; return e})}
 </script>
-</body>
-</html>
+
+</body></html>
