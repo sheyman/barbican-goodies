@@ -1,0 +1,6 @@
+stack@dbge063fd64-5ed8-4b11-81e0-994a15de4734:~/devstack$ /usr/local/bin/nova-ne twork --config-file /etc/nova/nova.conf & echo $! >/opt/stack/status/stack/n-net .pid; fg || echo "n-net failed to start" | tee "/opt/stack/status/stack/n-net.fa ilure"
+[1] 8817
+/usr/local/bin/nova-network --config-file /etc/nova/nova.conf
+2016-12-24 00:28:59.508 8817 ERROR nova.network [-] Nova network is deprecated and not supported except as required for CellsV1 deployments.
+n-net failed to start
+stack@dbge063fd64-5ed8-4b11-81e0-994a15de4734:~/devstack$ 
